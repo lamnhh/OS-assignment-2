@@ -41,8 +41,9 @@ static asmlinkage long __hook_open(const char __user *filename,
 
 static asmlinkage long __hook_write(unsigned int fd, const char __user *buf, size_t count)
 {
-        int pid = task_pid_nr(current);
-        printk(KERN_INFO "[WriteHook]: %s (%d) write %ld bytes", current->comm, pid, count);
+        // int pid = task_pid_nr(current);
+        // printk(KERN_INFO "[WriteHook]: Hello there\n");
+        // printk(KERN_INFO "[WriteHook]: %s (%d) write %ld bytes", current->comm, pid, count);
         return original_write(fd, buf, count);
 }
 

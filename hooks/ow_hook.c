@@ -14,53 +14,39 @@
 #include <asm/current.h>
 #include <linux/string.h>
 
-static char __current_filename[256];
-
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("D0hnuts");
-/*MY sys_call_table address*/
-//ffffffff81e001a0
+MODULE_AUTHOR("Lam Nguyen - 1712932");
 
-unsigned long *find_sys_call_table(void)
+static unsigned long **syscall_table_addr;
+
+static void find_sys_call_table(void)
 {
-        return (unsigned long *)kallsyms_lookup_name("sys_call_table");
+        syscall_table_addr = (void *)kallsyms_lookup_name("sys_call_table");
 }
 
-static unsigned long *system_call_table_addr;
+static asmlinkage long (*original_open)(const char __user *, int, int);
+static asmlinkage long (*original_write)(unsigned int, const char __user *, size_t);
 
-/*my custom syscall that takes process name*/
-static asmlinkage long (*__original_open)(const char __user *, int, int);
-static asmlinkage long (*__original_write)(unsigned int, const char __user *, size_t);
-int __open_method_index = __NR_open;
-int __write_method_index = __NR_write;
-
-/*hook*/
 static asmlinkage long __hook_open(const char __user *filename,
                                    int flags, int mode)
 {
-        /*do whatever here (print "HAHAHA", reverse their string, etc)
-    But for now we will just print to the dmesg log*/
         int pid = task_pid_nr(current);
         int len = strnlen_user(filename, 256);
+        char __current_filename[256];
         copy_from_user(__current_filename, filename, len);
         printk(KERN_INFO "[OpenHook]: %s (%d) open %s", current->comm, pid, __current_filename);
-        // printk(KERN_INFO "[OpenHook]: %s (%d) open %s", current->comm, pid, filename);
 
-        return __original_open(filename, flags, mode);
+        return original_open(filename, flags, mode);
 }
 
 static asmlinkage long __hook_write(unsigned int fd, const char __user *buf, size_t count)
 {
-        /*do whatever here (print "HAHAHA", reverse their string, etc)
-    But for now we will just print to the dmesg log*/
         int pid = task_pid_nr(current);
         printk(KERN_INFO "[WriteHook]: %s (%d) write %ld bytes", current->comm, pid, count);
-        // printk(KERN_INFO "[OpenHook]: %s (%d) open %s", current->comm, pid, filename);
-
-        return __original_write(fd, buf, count);
+        return original_write(fd, buf, count);
 }
 
-int make_rw(unsigned long address)
+static int make_rw(unsigned long address)
 {
         unsigned int level;
         pte_t *pte = lookup_address(address, &level);
@@ -71,8 +57,7 @@ int make_rw(unsigned long address)
         return 0;
 }
 
-/* Make the page write protected */
-int make_ro(unsigned long address)
+static int make_ro(unsigned long address)
 {
         unsigned int level;
         pte_t *pte = lookup_address(address, &level);
@@ -83,38 +68,32 @@ int make_ro(unsigned long address)
 static int __init entry_point(void)
 {
         printk(KERN_INFO "[OWHook]: loaded..\n");
-        /*MY sys_call_table address*/
+
         printk(KERN_INFO "[OWHook]: find syscall table..\n");
-        system_call_table_addr = (unsigned long)find_sys_call_table();
-        printk(KERN_INFO "[OWHook]: %p\n", system_call_table_addr + __open_method_index);
+        find_sys_call_table();
+        printk(KERN_INFO "[OWHook]: %p\n", syscall_table_addr);
 
-        /* Replace custom syscall with the correct system call name (write,open,etc) to hook*/
         printk(KERN_INFO "[OWHook]: hooking...\n");
-        __original_open = (void *)*(system_call_table_addr + __open_method_index);
-        __original_write = (void *)*(system_call_table_addr + __write_method_index);
+        original_open = (void *)*(syscall_table_addr + __NR_open);
+        original_write = (void *)*(syscall_table_addr + __NR_write);
 
-        /*Disable page protection*/
-        make_rw((unsigned long)system_call_table_addr);
-        /*Change syscall to our syscall function*/
-        *(system_call_table_addr + __open_method_index) = (unsigned long)__hook_open;
-        *(system_call_table_addr + __write_method_index) = (unsigned long)__hook_write;
-        make_ro((unsigned long)system_call_table_addr);
+        make_rw((unsigned long)syscall_table_addr);
+        syscall_table_addr[__NR_open] = (unsigned long *)__hook_open;
+        syscall_table_addr[__NR_write] = (unsigned long *)__hook_write;
+        make_ro((unsigned long)syscall_table_addr);
 
         printk(KERN_INFO "[OWHook]: Hook success");
         return 0;
 }
 static void __exit exit_point(void)
 {
-        make_rw((unsigned long)system_call_table_addr);
-        /*Restore original system call */
-	return;
+        make_rw((unsigned long)syscall_table_addr);
+        syscall_table_addr[__NR_open] = (unsigned long *)original_open;
+        syscall_table_addr[__NR_write] = (unsigned long *)original_write;
+        make_ro((unsigned long)syscall_table_addr);
 
-        *(system_call_table_addr + __open_method_index) = (unsigned long)__original_open;
-        *(system_call_table_addr + __write_method_index) = (unsigned long)__original_write;
-
-        /*Renable page protection*/
-        make_ro((unsigned long)system_call_table_addr);
         printk(KERN_INFO "[OWHook]: Unloaded successfully\n");
 }
+
 module_init(entry_point);
 module_exit(exit_point);

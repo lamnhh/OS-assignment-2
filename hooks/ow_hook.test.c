@@ -7,16 +7,22 @@
 
 int main(int argc, char *argv[])
 {
-    char fileName[] = "test.txt";
+    char file_name[] = "test.txt";
 
-    //create a file that the owner can read/write. flags can be found easily by google
-    syscall(SYS_open, fileName, O_CREAT, S_IRUSR | S_IWUSR);
-    //open it as write only
-    int fd = syscall(SYS_open, fileName, O_WRONLY);
-    //write somehing
-    syscall(SYS_write, fd, "hello", 5);
-    //close the file
+    // Create a file readable/writable.
+    syscall(SYS_open, file_name, O_CREAT, S_IRUSR | S_IWUSR);
+
+    // Open as write only
+    int fd = syscall(SYS_open, file_name, O_WRONLY);
+
+    // Write something
+    syscall(SYS_write, fd, "hfllo", 5);
+
+    // Close the file
     syscall(SYS_close, fd);
-    //change permission to executable
+
+    // Change permission to executable
     syscall(SYS_fchmod, fd, S_IXUSR);
+
+    return 0;
 }

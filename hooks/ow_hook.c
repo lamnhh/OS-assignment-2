@@ -21,7 +21,7 @@ static unsigned long **syscall_table_addr;
 
 static void find_sys_call_table(void)
 {
-        syscall_table_addr = (void *)kallsyms_lookup_name("sys_call_table");
+        syscall_table_addr = (unsigned long *)kallsyms_lookup_name("sys_call_table");
 }
 
 static asmlinkage long (*original_open)(const char __user *, int, int);
@@ -34,16 +34,12 @@ static asmlinkage long __hook_open(const char __user *filename,
         int len = strnlen_user(filename, 256);
         char __current_filename[256];
         copy_from_user(__current_filename, filename, len);
-        printk(KERN_INFO "[OpenHook]: %s (%d) open %s", current->comm, pid, __current_filename);
-
+        printk(KERN_INFO "[OpenHook]: %s (%d) open %d - [%s]\n", current->comm, pid, len, __current_filename);
         return original_open(filename, flags, mode);
 }
 
 static asmlinkage long __hook_write(unsigned int fd, const char __user *buf, size_t count)
 {
-        // int pid = task_pid_nr(current);
-        // printk(KERN_INFO "[WriteHook]: Hello there\n");
-        // printk(KERN_INFO "[WriteHook]: %s (%d) write %ld bytes", current->comm, pid, count);
         return original_write(fd, buf, count);
 }
 

@@ -21,8 +21,5 @@ int main(int argc, char *argv[])
     // Close the file
     syscall(SYS_close, fd);
 
-    // Change permission to executable
-    syscall(SYS_fchmod, fd, S_IXUSR);
-
     return 0;
 }

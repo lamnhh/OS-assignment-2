@@ -8,9 +8,10 @@
 
 #define DRIVER_AUTHOR "Lam Nguyen"
 #define DRIVER_DESC "A Linux kernel for generating random numbers"
-#define DEVICE_NAME "GRN"
+#define DEVICE_NAME "GRN" // Stands for Generating Random Numbers
 #define CLASS_NAME "gen_rand"
 
+// Results will be in [0, 1024)
 #define RND_MIN 0
 #define RND_MAX 1024
 
@@ -19,7 +20,7 @@ MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_SUPPORTED_DEVICE("testdevice");
 
-//Global variable
+// Global variable
 static int major_number;
 static struct class *gen_rand_class = NULL;
 static struct device *gen_rand_device = NULL;

@@ -5,15 +5,13 @@
 #include <string.h>
 #include <unistd.h>
 
-#define BUFFER_LENGTH 256           // The buffer length (crude but fine)
-static char receive[BUFFER_LENGTH]; // The receive buffer from the LKM
+#define BUFFER_LENGTH 256
+static char buffer[BUFFER_LENGTH];
 
 int main()
 {
         int ret, fd;
-        char stringToSend[BUFFER_LENGTH];
-        
-        printf("Starting device test code example...\n");
+
         fd = open("/dev/GRN", O_RDONLY); // Open the device with read/write access
         if (fd < 0)
         {
@@ -21,14 +19,15 @@ int main()
                 return errno;
         }
 
-        ret = read(fd, receive, BUFFER_LENGTH); // Read the response from the LKM
+        ret = read(fd, buffer, BUFFER_LENGTH); // Read the response from the LKM
         if (ret != 0)
         {
                 perror("Failed to generate random number...\n");
                 return errno;
         }
+
         int x;
-        memcpy(&x, receive, sizeof(int));
+        memcpy(&x, buffer, sizeof(int));
         printf("Random number generated %d\n", x);
         return 0;
 }

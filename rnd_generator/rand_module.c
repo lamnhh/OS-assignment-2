@@ -71,7 +71,7 @@ static int __init _module_constructor(void)
                 printk(KERN_ALERT "[%s]: Failed to create the device\n", DEVICE_NAME);
                 return PTR_ERR(gen_rand_device);
         }
-        printk(KERN_INFO "[%s]: device init sucess\n", DEVICE_NAME);
+        printk(KERN_INFO "[%s]: Device init sucess\n", DEVICE_NAME);
         return 0;
 }
 
@@ -86,22 +86,19 @@ static void __exit _module_exit(void)
 
 static int dev_open(struct inode *inodep, struct file *filep)
 {
-        printk(KERN_INFO "[%s]: Opened\n", DEVICE_NAME);
+        printk(KERN_INFO "[%s]: Open\n", DEVICE_NAME);
         return 0;
 }
 
 static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset)
 {
-        int random_integer = 0, error_count, diff = RND_MAX - RND_MIN;
+        unsigned int random_integer = 0;
+        int diff = RND_MAX - RND_MIN;
+        int error_count;
+
         get_random_bytes(&random_integer, sizeof(random_integer));
         random_integer = random_integer % diff;
-        if (random_integer < 0)
-        {
-                random_integer += diff;
-        }
         random_integer += RND_MIN;
-
-        printk(KERN_INFO "[%s]: Generate random number %d\n", DEVICE_NAME, random_integer);
 
         error_count = copy_to_user(buffer, &random_integer, sizeof(random_integer));
         return 0;
@@ -109,7 +106,7 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
 
 static int dev_release(struct inode *inodep, struct file *filep)
 {
-        printk(KERN_INFO "[%s]: Device success closed", DEVICE_NAME);
+        printk(KERN_INFO "[%s]: Device successfully closed", DEVICE_NAME);
         return 0;
 }
 

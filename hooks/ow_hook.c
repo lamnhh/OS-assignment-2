@@ -1,17 +1,18 @@
 #include <asm/unistd.h>
+#include <asm/pgtable_types.h>
 #include <asm/cacheflush.h>
+#include <asm/current.h>
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/syscalls.h>
-#include <asm/pgtable_types.h>
 #include <linux/highmem.h>
 #include <linux/fs.h>
 #include <linux/sched.h>
+#include <linux/fdtable.h>
 #include <linux/moduleparam.h>
+#include <linux/slab.h>
 #include <linux/unistd.h>
-#include <asm/cacheflush.h>
-#include <asm/current.h>
 #include <linux/string.h>
 
 MODULE_LICENSE("GPL");
@@ -43,7 +44,12 @@ static asmlinkage long hook_write(unsigned int fd, const char __user *buf, size_
         int pid = task_pid_nr(current);
         if (fd != 1)
         {
-                printk(KERN_INFO "[OWHook]: (Write) %s (%d) write %ld bytes", current->comm, pid, count);
+                char *buffer = kmalloc(1024, GFP_KERNEL);
+                char *pathname = d_path(&fcheck_files(current->files, fd)->f_path, buffer, 1024);
+                int nbyte = original_write(fd, buf, count);
+                printk(KERN_INFO "[OWHook]: (Write) %s (%d) writes %ld bytes to %s\n", current->comm, pid, count, pathname);
+                kfree(buffer);
+                return nbyte;
         }
         return original_write(fd, buf, count);
 }

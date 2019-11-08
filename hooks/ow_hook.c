@@ -88,6 +88,7 @@ static int __init entry_point(void)
         printk(KERN_INFO "[OWHook]: Module successfully loaded\n");
         return 0;
 }
+
 static void __exit exit_point(void)
 {
         make_rw((unsigned long)syscall_table_addr);
